@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import HomeScreen from './HomeScreen.jsx'
 
 const BOARD_SIZE = 8
 
@@ -30,6 +31,7 @@ const createRandomPiece = () => {
 const createInitialPieces = () => Array.from({ length: 3 }, () => createRandomPiece())
 
 function App() {
+  const [hasStarted, setHasStarted] = useState(false)
   const [board, setBoard] = useState(createEmptyBoard)
   const [pieces, setPieces] = useState(createInitialPieces)
   const [selectedPieceId, setSelectedPieceId] = useState(null)
@@ -39,7 +41,7 @@ function App() {
   const [selectionLocked, setSelectionLocked] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
-  const [status, setStatus] = useState('スタート準備中です。ブロックを選んでください。')
+  const [status, setStatus] = useState('ブロックを選んで、置く場所を選択してください。')
 
   useEffect(() => {
     if (gameOver) {
@@ -141,7 +143,7 @@ function App() {
   })
 
   useEffect(() => {
-    if (gameOver || pieces.length === 0) {
+    if (!hasStarted || gameOver || pieces.length === 0) {
       return
     }
 
@@ -152,7 +154,7 @@ function App() {
       setSelectedPieceId(null)
       setStatus('ゲームオーバーです。置ける場所がありません。')
     }
-  }, [board, pieces, gameOver])
+  }, [board, pieces, gameOver, hasStarted])
 
   const handlePieceSelection = (pieceId) => {
     if (gameOver) {
@@ -214,7 +216,7 @@ function App() {
     setHoverCell(null)
   }
 
-  const resetGame = () => {
+  const resetGame = (start = true) => {
     setBoard(createEmptyBoard())
     setPieces(createInitialPieces())
     setSelectedPieceId(null)
@@ -222,13 +224,58 @@ function App() {
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)
-    setStatus('盤面をリセットしました。スタートです。ブロックを選んでください。')
+    setStatus('ブロックを選んで、置く場所を選択してください。')
+    setHasStarted(start)
+  }
+
+  if (!hasStarted) {
+    return <HomeScreen onStart={() => resetGame(true)} />
+  }
+
+  if (gameOver) {
+    return (
+      <main className="screen-page game-over-screen">
+        <div className="home-topline">
+          <span className="brand-mark" aria-hidden="true">B</span>
+          <span className="home-label">BLOCK BLAST</span>
+        </div>
+
+        <section className="game-over-content" aria-labelledby="game-over-title">
+          <div className="game-over-art" aria-hidden="true">
+            <div className="game-over-ring" />
+            <div className="game-over-icon">!</div>
+            <span className="game-over-star star-left">✦</span>
+            <span className="game-over-star star-right">✦</span>
+          </div>
+          <p className="screen-eyebrow">NICE TRY!</p>
+          <h1 id="game-over-title" className="game-over-title">ゲームオーバー</h1>
+          <p className="game-over-description">置ける場所がなくなりました。もう一度挑戦しよう！</p>
+
+          <div className="final-score-card">
+            <span>今回のスコア</span>
+            <strong>{score.toLocaleString()}</strong>
+            <small>POINTS</small>
+          </div>
+
+          <button type="button" className="primary-button replay-button" onClick={() => resetGame(true)}>
+            <span>もう一度プレイ</span>
+            <span className="button-arrow" aria-hidden="true">↻</span>
+          </button>
+          <button type="button" className="text-button" onClick={() => resetGame(false)}>
+            ホームに戻る
+          </button>
+        </section>
+      </main>
+    )
   }
 
   return (
     <main className="game-page">
       <header className="topbar">
         <div>
+          <button type="button" className="home-link" onClick={() => resetGame(false)}>
+            <span aria-hidden="true">←</span> ホーム
+          </button>
           <p className="eyebrow">クラシックパズル</p>
           <h1>Block Blast</h1>
         </div>
@@ -239,13 +286,9 @@ function App() {
         </div>
       </header>
 
-      <div className={`start-banner ${!gameOver && score === 0 && board.every((row) => row.every((cell) => !cell)) ? 'visible' : ''}`}>
-        スタート
-      </div>
-
       <div className="game-layout">
-        <section className={`board-panel ${gameOver ? 'game-over' : ''}`}>
-          <div className="board" role="grid" aria-label="game board">
+        <section className="board-panel">
+          <div className="board" role="grid" aria-label="ゲームボード">
             {board.map((row, rowIndex) =>
               row.map((cell, colIndex) => {
                 const isPreviewed = previewCells.some(
@@ -309,22 +352,16 @@ function App() {
                         }
                       }
                     }}
-                    aria-label={`cell ${rowIndex + 1}, ${colIndex + 1}`}
-                    disabled={gameOver}
+                    aria-label={`${rowIndex + 1}行目、${colIndex + 1}列目`}
                   />
                 )
               }),
             )}
           </div>
-          {gameOver && (
-            <div className="board-overlay" aria-live="polite">
-              <span>ゲームオーバー</span>
-            </div>
-          )}
         </section>
 
         <aside className="sidebar">
-          <div className={`status-card ${gameOver ? 'game-over-warning' : ''}`}>
+          <div className="status-card">
             <h2>状態</h2>
             <p>{status}</p>
           </div>
@@ -334,37 +371,23 @@ function App() {
               <button
                 key={piece.id}
                 type="button"
-                draggable={!gameOver}
+                draggable
                 className={`piece ${selectedPiece?.id === piece.id ? 'selected' : ''} ${draggingPieceId === piece.id ? 'dragging' : ''}`}
                 style={{ '--piece-color': piece.color }}
                 onPointerDown={(event) => {
-                  if (gameOver) {
-                    return
-                  }
-
                   event.preventDefault()
                   handlePieceSelection(piece.id)
                 }}
                 onClick={() => {
-                  if (gameOver) {
-                    return
-                  }
-
                   handlePieceSelection(piece.id)
                 }}
                 onDragStart={(event) => {
-                  if (gameOver) {
-                    event.preventDefault()
-                    return
-                  }
-
                   setSelectedPieceId(piece.id)
                   setDraggingPieceId(piece.id)
                   event.dataTransfer.effectAllowed = 'move'
                   event.dataTransfer.setData('text/plain', piece.id)
                 }}
                 onDragEnd={() => setDraggingPieceId(null)}
-                disabled={gameOver}
               >
                 <span className="piece-grid" aria-label="piece preview">
                   {Array.from({ length: 9 }, (_, index) => {
@@ -384,9 +407,6 @@ function App() {
             ))}
           </div>
 
-          <button type="button" className="reset-button" onClick={resetGame}>
-            リセット
-          </button>
         </aside>
       </div>
     </main>
