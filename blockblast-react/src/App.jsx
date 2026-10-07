@@ -303,7 +303,7 @@ function App() {
                         : isPreviewed
                           ? {
                               background: isInvalidPreview ? '#ef4444' : hoveredPiecePreview.color,
-                              boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.8)',
+                              boxShadow: 'inset 0 0 0 0.125rem rgba(255,255,255,0.8)',
                             }
                           : isInvalidPreview
                             ? { background: '#ef4444', opacity: 0.7 }
