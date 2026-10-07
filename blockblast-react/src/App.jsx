@@ -59,6 +59,7 @@ function App() {
   const [pieces, setPieces] = useState(createInitialPieces)
   const [selectedPieceId, setSelectedPieceId] = useState(null)
   const [draggingPieceId, setDraggingPieceId] = useState(null)
+  const [dragPosition, setDragPosition] = useState(null)
   const [hoverCell, setHoverCell] = useState(null)
   const [placingEnabled, setPlacingEnabled] = useState(false)
   const [selectionLocked, setSelectionLocked] = useState(false)
@@ -79,7 +80,8 @@ function App() {
   }, [pieces, selectedPieceId, gameOver, selectionLocked])
 
   const selectedPiece = pieces.find((piece) => piece.id === selectedPieceId) ?? pieces[0]
-  const hoveredPiecePreview = pieces.find((piece) => piece.id === draggingPieceId) ?? selectedPiece
+  const draggedPiece = pieces.find((piece) => piece.id === draggingPieceId)
+  const hoveredPiecePreview = draggedPiece ?? selectedPiece
 
   const canPlacePiece = (piece, anchorRow, anchorCol, targetBoard = board) => {
     return piece.shape.every(({ row, col }) => {
@@ -190,6 +192,7 @@ function App() {
       setSelectionLocked(true)
       setPlacingEnabled(false)
       setDraggingPieceId(null)
+      setDragPosition(null)
       setHoverCell(null)
       return
     }
@@ -205,6 +208,8 @@ function App() {
     setBoard(createEmptyBoard())
     setPieces(createInitialPieces())
     setSelectedPieceId(null)
+    setDraggingPieceId(null)
+    setDragPosition(null)
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)
@@ -356,6 +361,7 @@ function App() {
                     event.currentTarget.setPointerCapture(event.pointerId)
                     setSelectedPieceId(piece.id)
                     setDraggingPieceId(piece.id)
+                    setDragPosition({ x: event.clientX, y: event.clientY })
                     setPlacingEnabled(true)
                     setSelectionLocked(false)
                   }}
@@ -364,6 +370,7 @@ function App() {
                       return
                     }
 
+                    setDragPosition({ x: event.clientX, y: event.clientY })
                     const cell = document
                       .elementFromPoint(event.clientX, event.clientY)
                       ?.closest('.cell')
@@ -387,10 +394,13 @@ function App() {
                     if (cell) {
                       handleCellClick(Number(cell.dataset.row), Number(cell.dataset.col), piece)
                       setDraggingPieceId(null)
+                      setDragPosition(null)
                       setHoverCell(null)
                     } else {
                       handlePieceSelection(piece.id)
                       setDraggingPieceId(null)
+                      setDragPosition(null)
+                      setHoverCell(null)
                     }
 
                     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -399,6 +409,7 @@ function App() {
                   }}
                   onPointerCancel={(event) => {
                     setDraggingPieceId(null)
+                    setDragPosition(null)
                     setHoverCell(null)
 
                     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -436,6 +447,23 @@ function App() {
 
         </aside>
       </div>
+      {draggedPiece && dragPosition && (
+        <div
+          className="drag-preview"
+          style={{ left: dragPosition.x, top: dragPosition.y, '--piece-color': draggedPiece.color }}
+          aria-hidden="true"
+        >
+          <span className="piece-grid">
+            {Array.from({ length: 9 }, (_, cellIndex) => {
+              const row = Math.floor(cellIndex / 3)
+              const col = cellIndex % 3
+              const filled = draggedPiece.shape.some((block) => block.row === row && block.col === col)
+
+              return <span key={`${draggingPieceId}-${row}-${col}`} className={`piece-cell ${filled ? 'filled' : ''}`} />
+            })}
+          </span>
+        </div>
+      )}
     </main>
   )
 }
