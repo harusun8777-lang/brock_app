@@ -239,8 +239,8 @@ function App() {
           <h1 id="game-over-title" className="game-over-title">ゲームオーバー</h1>
           <p className="game-over-description">置ける場所がなくなりました。もう一度挑戦しよう！</p>
 
-          <div className="final-score-card">
-            <span>今回のスコア</span>
+          <div className="final-score-card" aria-label={`最終スコア ${score}点`}>
+            <span>FINAL SCORE</span>
             <strong>{score.toLocaleString()}</strong>
             <small>POINTS</small>
           </div>
