@@ -63,7 +63,6 @@ function App() {
   const [placingEnabled, setPlacingEnabled] = useState(false)
   const [selectionLocked, setSelectionLocked] = useState(false)
   const [score, setScore] = useState(0)
-  const [status, setStatus] = useState('ブロックを長押しして盤面へ動かし、置く場所で指を離してください。')
   const suppressPieceClickRef = useRef(false)
   const gameOver = hasStarted && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
 
@@ -152,7 +151,6 @@ function App() {
     setSelectionLocked(false)
     setPlacingEnabled(true)
     setHoverCell(null)
-    setStatus('選択中：置きたい場所の左上マスをタップしてください。')
   }
 
   const handleCellClick = (row, col, pieceOverride = selectedPiece) => {
@@ -167,7 +165,6 @@ function App() {
     }
 
     if (!canPlacePiece(pieceToPlace, row, col)) {
-      setStatus('ここには置けません。ブロック全体が入る別の左上マスを選んでください。')
       return
     }
 
@@ -191,7 +188,6 @@ function App() {
       setPieces(createInitialPieces())
       setSelectedPieceId(null)
       setSelectionLocked(true)
-      setStatus(cleared > 0 ? `ナイスです！${cleared}列を消して ${placementScore} 点獲得！` : 'ナイスです！次のブロックを準備しました。')
       setPlacingEnabled(false)
       setDraggingPieceId(null)
       setHoverCell(null)
@@ -201,7 +197,6 @@ function App() {
     setPieces(remainingPieces)
     setSelectedPieceId(null)
     setSelectionLocked(true)
-    setStatus(cleared > 0 ? `置けました！${cleared}列を消して ${placementScore} 点獲得。次のブロックを選んでください。` : '置けました！次のブロックを選んでください。')
     setPlacingEnabled(false)
     setHoverCell(null)
   }
@@ -213,7 +208,6 @@ function App() {
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)
-    setStatus('ブロックを長押しして盤面へ動かし、置く場所で指を離してください。')
     setHasStarted(start)
   }
 
@@ -273,11 +267,6 @@ function App() {
       </header>
 
       <div className="game-layout">
-        <div className="status-card" role="status" aria-live="polite">
-          <h2>置き方</h2>
-          <p>{status}</p>
-        </div>
-
         <section className="board-panel">
           <div className="board" role="grid" aria-label="ゲームボード">
             {board.map((row, rowIndex) =>
@@ -369,7 +358,6 @@ function App() {
                     setDraggingPieceId(piece.id)
                     setPlacingEnabled(true)
                     setSelectionLocked(false)
-                    setStatus('ブロックを置く場所まで動かし、指を離してください。')
                   }}
                   onPointerMove={(event) => {
                     if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
