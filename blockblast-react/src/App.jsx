@@ -30,6 +30,29 @@ const createRandomPiece = () => {
 
 const createInitialPieces = () => Array.from({ length: 3 }, () => createRandomPiece())
 
+const canPieceFitAnywhere = (piece, targetBoard) => {
+  for (let row = 0; row < BOARD_SIZE; row += 1) {
+    for (let col = 0; col < BOARD_SIZE; col += 1) {
+      const fits = piece.shape.every(({ row: shapeRow, col: shapeCol }) => {
+        const nextRow = row + shapeRow
+        const nextCol = col + shapeCol
+
+        if (nextRow < 0 || nextRow >= BOARD_SIZE || nextCol < 0 || nextCol >= BOARD_SIZE) {
+          return false
+        }
+
+        return !targetBoard[nextRow][nextCol]
+      })
+
+      if (fits) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 function App() {
   const [hasStarted, setHasStarted] = useState(false)
   const [board, setBoard] = useState(createEmptyBoard)
@@ -39,10 +62,10 @@ function App() {
   const [hoverCell, setHoverCell] = useState(null)
   const [placingEnabled, setPlacingEnabled] = useState(false)
   const [selectionLocked, setSelectionLocked] = useState(false)
-  const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
   const [status, setStatus] = useState('ブロックを長押しして盤面へ動かし、置く場所で指を離してください。')
   const suppressPieceClickRef = useRef(false)
+  const gameOver = hasStarted && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
 
   useEffect(() => {
     if (gameOver) {
@@ -58,29 +81,6 @@ function App() {
 
   const selectedPiece = pieces.find((piece) => piece.id === selectedPieceId) ?? pieces[0]
   const hoveredPiecePreview = pieces.find((piece) => piece.id === draggingPieceId) ?? selectedPiece
-
-  const canPieceFitAnywhere = (piece, targetBoard) => {
-    for (let row = 0; row < BOARD_SIZE; row += 1) {
-      for (let col = 0; col < BOARD_SIZE; col += 1) {
-        const fits = piece.shape.every(({ row: shapeRow, col: shapeCol }) => {
-          const nextRow = row + shapeRow
-          const nextCol = col + shapeCol
-
-          if (nextRow < 0 || nextRow >= BOARD_SIZE || nextCol < 0 || nextCol >= BOARD_SIZE) {
-            return false
-          }
-
-          return !targetBoard[nextRow][nextCol]
-        })
-
-        if (fits) {
-          return true
-        }
-      }
-    }
-
-    return false
-  }
 
   const canPlacePiece = (piece, anchorRow, anchorCol, targetBoard = board) => {
     return piece.shape.every(({ row, col }) => {
@@ -143,20 +143,6 @@ function App() {
     return Boolean(board[row]?.[col])
   })
 
-  useEffect(() => {
-    if (!hasStarted || gameOver || pieces.length === 0) {
-      return
-    }
-
-    const canMove = pieces.some((piece) => canPieceFitAnywhere(piece, board))
-
-    if (!canMove) {
-      setGameOver(true)
-      setSelectedPieceId(null)
-      setStatus('ゲームオーバーです。置ける場所がありません。')
-    }
-  }, [board, pieces, gameOver, hasStarted])
-
   const handlePieceSelection = (pieceId) => {
     if (gameOver) {
       return
@@ -206,6 +192,9 @@ function App() {
       setSelectedPieceId(null)
       setSelectionLocked(true)
       setStatus(cleared > 0 ? `ナイスです！${cleared}列を消して ${placementScore} 点獲得！` : 'ナイスです！次のブロックを準備しました。')
+      setPlacingEnabled(false)
+      setDraggingPieceId(null)
+      setHoverCell(null)
       return
     }
 
@@ -221,7 +210,6 @@ function App() {
     setBoard(createEmptyBoard())
     setPieces(createInitialPieces())
     setSelectedPieceId(null)
-    setGameOver(false)
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)

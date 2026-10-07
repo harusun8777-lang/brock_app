@@ -359,6 +359,7 @@
 }
 
 .game-over-screen {
+  overflow-y: auto;
   background:
     radial-gradient(ellipse at 50% 39%, rgba(183, 62, 108, 0.18), transparent 45%),
     linear-gradient(160deg, rgba(20, 15, 39, 0.97), rgba(8, 9, 27, 0.99));
@@ -509,6 +510,29 @@
 
 .home-link span {
   margin-right: 4px;
+}
+
+@media (max-height: 700px) {
+  .game-over-content {
+    justify-content: flex-start;
+    padding-top: 12px;
+  }
+
+  .game-over-art {
+    width: 140px;
+    height: 140px;
+    margin-bottom: 4px;
+  }
+
+  .game-over-icon {
+    width: 82px;
+    height: 82px;
+    font-size: 3.4rem;
+  }
+
+  .final-score-card {
+    margin-top: 16px;
+  }
 }
 
 @media (max-width: 420px) {
