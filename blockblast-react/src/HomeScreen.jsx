@@ -4,13 +4,13 @@ const HOW_TO_PLAY = [
   {
     number: '01',
     title: 'ブロックを選ぶ',
-    description: '下に並んだブロックから1つ選択。',
+    description: '下のブロックをタップ。',
     shape: 'single',
   },
   {
     number: '02',
-    title: 'マスに置く',
-    description: '空いているマスをタップして配置。',
+    title: '置く場所を選ぶ',
+    description: '置きたい場所の左上マスをタップ。',
     shape: 'corner',
   },
   {

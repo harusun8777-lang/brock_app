@@ -41,7 +41,7 @@ function App() {
   const [selectionLocked, setSelectionLocked] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
-  const [status, setStatus] = useState('ブロックを選んで、置く場所を選択してください。')
+  const [status, setStatus] = useState('① 下のブロックをタップ ② 置きたい場所の左上マスをタップ')
 
   useEffect(() => {
     if (gameOver) {
@@ -76,7 +76,7 @@ function App() {
           return true
         }
       }
-    }e
+    }
 
     return false
   }
@@ -165,7 +165,7 @@ function App() {
     setSelectionLocked(false)
     setPlacingEnabled(true)
     setHoverCell(null)
-    setStatus('ブロックを選択しました。置ける場所をタップしてください。')
+    setStatus('選択中：盤面で、ブロックを置きたい場所の左上マスをタップしてください。')
   }
 
   const handleCellClick = (row, col, pieceOverride = selectedPiece) => {
@@ -180,7 +180,7 @@ function App() {
     }
 
     if (!canPlacePiece(pieceToPlace, row, col)) {
-      setStatus('ここには置けません。別の場所を選んでください。')
+      setStatus('ここには置けません。ブロック全体が入る別の左上マスを選んでください。')
       return
     }
 
@@ -224,7 +224,7 @@ function App() {
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)
-    setStatus('ブロックを選んで、置く場所を選択してください。')
+    setStatus('① 下のブロックをタップ ② 置きたい場所の左上マスをタップ')
     setHasStarted(start)
   }
 
@@ -287,6 +287,11 @@ function App() {
       </header>
 
       <div className="game-layout">
+        <div className="status-card" role="status" aria-live="polite">
+          <h2>置き方</h2>
+          <p>{status}</p>
+        </div>
+
         <section className="board-panel">
           <div className="board" role="grid" aria-label="ゲームボード">
             {board.map((row, rowIndex) =>
@@ -315,15 +320,6 @@ function App() {
                             ? { background: '#ef4444', opacity: 0.7 }
                             : undefined
                     }
-                    onPointerDown={(event) => {
-                      event.preventDefault()
-
-                      if (!placingEnabled) {
-                        return
-                      }
-
-                      handleCellClick(rowIndex, colIndex)
-                    }}
                     onClick={() => {
                       if (!placingEnabled) {
                         return
@@ -361,50 +357,50 @@ function App() {
         </section>
 
         <aside className="sidebar">
-          <div className="status-card">
-            <h2>状態</h2>
-            <p>{status}</p>
-          </div>
-
+          <h2 className="piece-list-heading">ブロックを選択</h2>
           <div className="piece-list">
-            {pieces.map((piece) => (
-              <button
-                key={piece.id}
-                type="button"
-                draggable
-                className={`piece ${selectedPiece?.id === piece.id ? 'selected' : ''} ${draggingPieceId === piece.id ? 'dragging' : ''}`}
-                style={{ '--piece-color': piece.color }}
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  handlePieceSelection(piece.id)
-                }}
-                onClick={() => {
-                  handlePieceSelection(piece.id)
-                }}
-                onDragStart={(event) => {
-                  setSelectedPieceId(piece.id)
-                  setDraggingPieceId(piece.id)
-                  event.dataTransfer.effectAllowed = 'move'
-                  event.dataTransfer.setData('text/plain', piece.id)
-                }}
-                onDragEnd={() => setDraggingPieceId(null)}
-              >
-                <span className="piece-grid" aria-label="piece preview">
-                  {Array.from({ length: 9 }, (_, index) => {
-                    const row = Math.floor(index / 3)
-                    const col = index % 3
-                    const filled = piece.shape.some((block) => block.row === row && block.col === col)
+            {pieces.map((piece, index) => {
+              const isSelected = placingEnabled && selectedPiece?.id === piece.id
 
-                    return (
-                      <span
-                        key={`${piece.id}-${row}-${col}`}
-                        className={`piece-cell ${filled ? 'filled' : ''}`}
-                      />
-                    )
-                  })}
-                </span>
-              </button>
-            ))}
+              return (
+                <button
+                  key={piece.id}
+                  type="button"
+                  draggable
+                  className={`piece ${isSelected ? 'selected' : ''} ${draggingPieceId === piece.id ? 'dragging' : ''}`}
+                  style={{ '--piece-color': piece.color }}
+                  aria-label={`ブロック ${index + 1}${isSelected ? '、選択中' : '、タップして選択'}`}
+                  aria-pressed={isSelected}
+                  onClick={() => handlePieceSelection(piece.id)}
+                  onDragStart={(event) => {
+                    setSelectedPieceId(piece.id)
+                    setDraggingPieceId(piece.id)
+                    setPlacingEnabled(true)
+                    setSelectionLocked(false)
+                    setStatus('選択中：盤面で、ブロックを置きたい場所の左上マスをドロップしてください。')
+                    event.dataTransfer.effectAllowed = 'move'
+                    event.dataTransfer.setData('text/plain', piece.id)
+                  }}
+                  onDragEnd={() => setDraggingPieceId(null)}
+                >
+                  <span className="piece-grid" aria-hidden="true">
+                    {Array.from({ length: 9 }, (_, cellIndex) => {
+                      const row = Math.floor(cellIndex / 3)
+                      const col = cellIndex % 3
+                      const filled = piece.shape.some((block) => block.row === row && block.col === col)
+
+                      return (
+                        <span
+                          key={`${piece.id}-${row}-${col}`}
+                          className={`piece-cell ${filled ? 'filled' : ''}`}
+                        />
+                      )
+                    })}
+                  </span>
+                  <span className="piece-status">{isSelected ? '選択中' : 'タップして選択'}</span>
+                </button>
+              )
+            })}
           </div>
 
         </aside>

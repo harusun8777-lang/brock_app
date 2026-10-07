@@ -57,7 +57,7 @@
 .game-layout {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -124,6 +124,12 @@
   gap: 12px;
 }
 
+.piece-list-heading {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
 .status-card,
 .piece {
   border-radius: 18px;
@@ -132,7 +138,7 @@
 }
 
 .status-card {
-  padding: 14px 12px;
+  padding: 12px;
 }
 
 .status-card.game-over-warning {
@@ -147,8 +153,8 @@
 }
 
 .status-card h2 {
-  margin: 0 0 8px;
-  font-size: 1rem;
+  margin: 0 0 4px;
+  font-size: 0.88rem;
   color: #f8fafc;
 }
 
@@ -165,6 +171,11 @@
 }
 
 .piece {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px 8px;
   cursor: pointer;
   min-height: 96px;
@@ -202,6 +213,16 @@
 .piece-cell.filled {
   background: var(--piece-color);
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+.piece-status {
+  color: #aab5d4;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.piece.selected .piece-status {
+  color: #bfdbfe;
 }
 
 .game-over-banner {
@@ -504,17 +525,17 @@
   }
 
   .board {
-    width: min(92vw, 360px);
+    width: min(92vw, 360px, max(240px, calc(100svh - 390px)));
     gap: 5px;
     padding: 7px;
   }
 
   .cell {
     border-radius: 8px;
+    min-height: 0;
   }
 
   .piece-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
 }
