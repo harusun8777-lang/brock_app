@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import HomeScreen from './HomeScreen.jsx'
 
@@ -41,7 +41,8 @@ function App() {
   const [selectionLocked, setSelectionLocked] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
-  const [status, setStatus] = useState('① 下のブロックをタップ ② 置きたい場所の左上マスをタップ')
+  const [status, setStatus] = useState('ブロックを長押しして盤面へ動かし、置く場所で指を離してください。')
+  const suppressPieceClickRef = useRef(false)
 
   useEffect(() => {
     if (gameOver) {
@@ -165,7 +166,7 @@ function App() {
     setSelectionLocked(false)
     setPlacingEnabled(true)
     setHoverCell(null)
-    setStatus('選択中：盤面で、ブロックを置きたい場所の左上マスをタップしてください。')
+    setStatus('選択中：置きたい場所の左上マスをタップしてください。')
   }
 
   const handleCellClick = (row, col, pieceOverride = selectedPiece) => {
@@ -224,7 +225,7 @@ function App() {
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)
-    setStatus('① 下のブロックをタップ ② 置きたい場所の左上マスをタップ')
+    setStatus('ブロックを長押しして盤面へ動かし、置く場所で指を離してください。')
     setHasStarted(start)
   }
 
@@ -320,6 +321,8 @@ function App() {
                             ? { background: '#ef4444', opacity: 0.7 }
                             : undefined
                     }
+                    data-row={rowIndex}
+                    data-col={colIndex}
                     onClick={() => {
                       if (!placingEnabled) {
                         return
@@ -366,22 +369,77 @@ function App() {
                 <button
                   key={piece.id}
                   type="button"
-                  draggable
                   className={`piece ${isSelected ? 'selected' : ''} ${draggingPieceId === piece.id ? 'dragging' : ''}`}
                   style={{ '--piece-color': piece.color }}
-                  aria-label={`ブロック ${index + 1}${isSelected ? '、選択中' : '、タップして選択'}`}
+                  aria-label={`ブロック ${index + 1}${isSelected ? '、選択中' : '、長押しして盤面へ移動'}`}
                   aria-pressed={isSelected}
-                  onClick={() => handlePieceSelection(piece.id)}
-                  onDragStart={(event) => {
+                  onPointerDown={(event) => {
+                    if (!event.isPrimary || event.button !== 0) {
+                      return
+                    }
+
+                    event.preventDefault()
+                    event.currentTarget.setPointerCapture(event.pointerId)
                     setSelectedPieceId(piece.id)
                     setDraggingPieceId(piece.id)
                     setPlacingEnabled(true)
                     setSelectionLocked(false)
-                    setStatus('選択中：盤面で、ブロックを置きたい場所の左上マスをドロップしてください。')
-                    event.dataTransfer.effectAllowed = 'move'
-                    event.dataTransfer.setData('text/plain', piece.id)
+                    setStatus('ブロックを置く場所まで動かし、指を離してください。')
                   }}
-                  onDragEnd={() => setDraggingPieceId(null)}
+                  onPointerMove={(event) => {
+                    if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      return
+                    }
+
+                    const cell = document
+                      .elementFromPoint(event.clientX, event.clientY)
+                      ?.closest('.cell')
+
+                    setHoverCell(
+                      cell
+                        ? { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
+                        : null,
+                    )
+                  }}
+                  onPointerUp={(event) => {
+                    const cell = document
+                      .elementFromPoint(event.clientX, event.clientY)
+                      ?.closest('.cell')
+
+                    suppressPieceClickRef.current = true
+                    window.setTimeout(() => {
+                      suppressPieceClickRef.current = false
+                    }, 0)
+
+                    if (cell) {
+                      handleCellClick(Number(cell.dataset.row), Number(cell.dataset.col), piece)
+                      setDraggingPieceId(null)
+                      setHoverCell(null)
+                    } else {
+                      handlePieceSelection(piece.id)
+                      setDraggingPieceId(null)
+                    }
+
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId)
+                    }
+                  }}
+                  onPointerCancel={(event) => {
+                    setDraggingPieceId(null)
+                    setHoverCell(null)
+
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId)
+                    }
+                  }}
+                  onClick={() => {
+                    if (suppressPieceClickRef.current) {
+                      suppressPieceClickRef.current = false
+                      return
+                    }
+
+                    handlePieceSelection(piece.id)
+                  }}
                 >
                   <span className="piece-grid" aria-hidden="true">
                     {Array.from({ length: 9 }, (_, cellIndex) => {
@@ -397,7 +455,7 @@ function App() {
                       )
                     })}
                   </span>
-                  <span className="piece-status">{isSelected ? '選択中' : 'タップして選択'}</span>
+                  <span className="piece-status">{isSelected ? '選択中' : '長押しして移動'}</span>
                 </button>
               )
             })}

@@ -3,14 +3,14 @@ import './HomeScreen.css'
 const HOW_TO_PLAY = [
   {
     number: '01',
-    title: 'ブロックを選ぶ',
-    description: '下のブロックをタップ。',
+    title: 'ブロックをつかむ',
+    description: '下のブロックを長押し。',
     shape: 'single',
   },
   {
     number: '02',
-    title: '置く場所を選ぶ',
-    description: '置きたい場所の左上マスをタップ。',
+    title: '動かして離す',
+    description: '盤面へ動かし、置く場所で指を離す。',
     shape: 'corner',
   },
   {
@@ -43,7 +43,7 @@ function HomeScreen({ onStart }) {
         <h1 id="home-title" className="home-title">
           BLOCK <span>BLAST</span>
         </h1>
-        <p className="home-description">ブロックを置いて、縦・横のラインを消そう。</p>
+        <p className="home-description">ブロックを動かして置き、縦・横のラインを消そう。</p>
 
         <section className="how-to-play" aria-labelledby="how-to-play-title">
           <h2 id="how-to-play-title">遊び方</h2>
