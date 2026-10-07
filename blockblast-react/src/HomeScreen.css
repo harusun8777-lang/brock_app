@@ -142,7 +142,7 @@
 .how-to-play h2 {
   margin-bottom: 0.5625rem;
   color: #e8e9f5;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
@@ -168,7 +168,7 @@
 
 .step-number {
   color: #9b83f4;
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -228,12 +228,13 @@
 
 .step-copy strong {
   color: #f2f2fc;
-  font-size: 0.76rem;
+  font-size: 0.9rem;
 }
 
 .step-copy > span {
   color: #9da7c4;
-  font-size: 0.67rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .home-start-button {
