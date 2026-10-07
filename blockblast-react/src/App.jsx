@@ -262,9 +262,6 @@ function App() {
     <main className="game-page">
       <header className="topbar">
         <div>
-          <button type="button" className="home-link" onClick={() => resetGame(false)}>
-            <span aria-hidden="true">←</span> ホーム
-          </button>
           <p className="eyebrow">クラシックパズル</p>
           <h1>Block Blast</h1>
         </div>
