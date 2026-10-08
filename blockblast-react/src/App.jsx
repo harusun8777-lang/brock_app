@@ -155,6 +155,25 @@ function App() {
     setHoverCell(null)
   }
 
+  const getDragTargetCell = (event) => {
+    let { clientX, clientY } = event
+
+    if (event.pointerType === 'touch') {
+      const preview = document.querySelector('.drag-preview')
+      const firstBlock = preview?.querySelector('.piece-cell.filled')
+      const previewX = Number.parseFloat(preview?.style.left ?? '')
+      const previewY = Number.parseFloat(preview?.style.top ?? '')
+
+      if (firstBlock && Number.isFinite(previewX) && Number.isFinite(previewY)) {
+        const blockBounds = firstBlock.getBoundingClientRect()
+        clientX += blockBounds.left + blockBounds.width / 2 - previewX
+        clientY += blockBounds.top + blockBounds.height / 2 - previewY
+      }
+    }
+
+    return document.elementFromPoint(clientX, clientY)?.closest('.cell') ?? null
+  }
+
   const handleCellClick = (row, col, pieceOverride = selectedPiece) => {
     if (gameOver) {
       return
@@ -371,9 +390,7 @@ function App() {
                     }
 
                     setDragPosition({ x: event.clientX, y: event.clientY })
-                    const cell = document
-                      .elementFromPoint(event.clientX, event.clientY)
-                      ?.closest('.cell')
+                    const cell = getDragTargetCell(event)
 
                     setHoverCell(
                       cell
@@ -382,9 +399,7 @@ function App() {
                     )
                   }}
                   onPointerUp={(event) => {
-                    const cell = document
-                      .elementFromPoint(event.clientX, event.clientY)
-                      ?.closest('.cell')
+                    const cell = getDragTargetCell(event)
 
                     suppressPieceClickRef.current = true
                     window.setTimeout(() => {
