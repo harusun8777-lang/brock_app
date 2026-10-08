@@ -64,7 +64,10 @@ function App() {
   const [placingEnabled, setPlacingEnabled] = useState(false)
   const [selectionLocked, setSelectionLocked] = useState(false)
   const [score, setScore] = useState(0)
+  const [leaderboard, setLeaderboard] = useState([])
+  const [leaderboardStatus, setLeaderboardStatus] = useState('idle')
   const suppressPieceClickRef = useRef(false)
+  const scoreSubmittedRef = useRef(false)
   const gameOver = hasStarted && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
 
   useEffect(() => {
@@ -78,6 +81,52 @@ function App() {
       setSelectedPieceId(pieces[0].id)
     }
   }, [pieces, selectedPieceId, gameOver, selectionLocked])
+
+  useEffect(() => {
+    if (!gameOver || scoreSubmittedRef.current) {
+      return
+    }
+
+    scoreSubmittedRef.current = true
+    let active = true
+
+    const submitScore = async () => {
+      setLeaderboardStatus('loading')
+
+      try {
+        const response = await fetch('/api/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Leaderboard request failed with status ${response.status}`)
+        }
+
+        const result = await response.json()
+
+        if (!Array.isArray(result.scores)) {
+          throw new Error('Leaderboard response did not include a score list')
+        }
+
+        if (active) {
+          setLeaderboard(result.scores)
+          setLeaderboardStatus('ready')
+        }
+      } catch (error) {
+        console.error('Unable to submit the final score:', error)
+        if (active) {
+          setLeaderboardStatus('error')
+        }
+      }
+    }
+
+    submitScore()
+    return () => {
+      active = false
+    }
+  }, [gameOver, score])
 
   const selectedPiece = pieces.find((piece) => piece.id === selectedPieceId) ?? pieces[0]
   const draggedPiece = pieces.find((piece) => piece.id === draggingPieceId)
@@ -159,15 +208,12 @@ function App() {
     let { clientX, clientY } = event
 
     if (event.pointerType === 'touch') {
-      const preview = document.querySelector('.drag-preview')
-      const firstBlock = preview?.querySelector('.piece-cell.filled')
-      const previewX = Number.parseFloat(preview?.style.left ?? '')
-      const previewY = Number.parseFloat(preview?.style.top ?? '')
+      const firstCell = document.querySelector('.board .cell')
 
-      if (firstBlock && Number.isFinite(previewX) && Number.isFinite(previewY)) {
-        const blockBounds = firstBlock.getBoundingClientRect()
-        clientX += blockBounds.left + blockBounds.width / 2 - previewX
-        clientY += blockBounds.top + blockBounds.height / 2 - previewY
+      if (firstCell) {
+        const cellBounds = firstCell.getBoundingClientRect()
+        const rowGap = Number.parseFloat(getComputedStyle(firstCell.parentElement).rowGap) || 0
+        clientY -= cellBounds.height + rowGap
       }
     }
 
@@ -232,6 +278,9 @@ function App() {
     setPlacingEnabled(false)
     setSelectionLocked(false)
     setScore(0)
+    setLeaderboard([])
+    setLeaderboardStatus('idle')
+    scoreSubmittedRef.current = false
     setHasStarted(start)
   }
 
@@ -258,11 +307,46 @@ function App() {
           <h1 id="game-over-title" className="game-over-title">ゲームオーバー</h1>
           <p className="game-over-description">置ける場所がなくなりました。もう一度挑戦しよう！</p>
 
-          <div className="final-score-card" aria-label={`最終スコア ${score}点`}>
-            <span>FINAL SCORE</span>
+          <div className="final-score-card" aria-label={`今回のスコア ${score}点`}>
+            <span>今回のスコア</span>
             <strong>{score.toLocaleString()}</strong>
             <small>POINTS</small>
           </div>
+
+          <section className="leaderboard-panel" aria-labelledby="leaderboard-title">
+            <div className="leaderboard-heading">
+              <div>
+                <span>ALL PLAYERS</span>
+                <h2 id="leaderboard-title">ランキング</h2>
+              </div>
+              <strong>TOP 10</strong>
+            </div>
+
+            {leaderboardStatus === 'loading' && (
+              <p className="leaderboard-message" role="status">ランキングを読み込み中...</p>
+            )}
+            {leaderboardStatus === 'error' && (
+              <p className="leaderboard-message leaderboard-error" role="status">
+                ランキングに接続できませんでした。公開サーバーとデータベースの設定を確認してください。
+              </p>
+            )}
+            {leaderboardStatus === 'ready' && leaderboard.length === 0 && (
+              <p className="leaderboard-message">まだ記録がありません。最初のランクインを目指そう！</p>
+            )}
+            {leaderboardStatus === 'ready' && leaderboard.length > 0 && (
+              <ol className="leaderboard-list">
+                {leaderboard.map((entry) => (
+                  <li className={`leaderboard-row ${entry.position <= 3 ? 'top-rank' : ''}`} key={entry.position}>
+                    <span className="leaderboard-rank" aria-label={`${entry.position}位`}>
+                      {entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : entry.position === 3 ? '🥉' : entry.position}
+                    </span>
+                    <span className="leaderboard-name">{entry.name}</span>
+                    <strong>{entry.score.toLocaleString()}</strong>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
           <button type="button" className="primary-button replay-button" onClick={() => resetGame(true)}>
             <span>もう一度プレイ</span>
@@ -280,6 +364,9 @@ function App() {
     <main className="game-page">
       <header className="topbar">
         <div>
+          <button type="button" className="home-link" onClick={() => resetGame(false)}>
+            <span aria-hidden="true">←</span> ホーム
+          </button>
           <p className="eyebrow">クラシックパズル</p>
           <h1>Block Blast</h1>
         </div>
