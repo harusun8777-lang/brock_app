@@ -66,6 +66,7 @@ function App() {
   const [score, setScore] = useState(0)
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardStatus, setLeaderboardStatus] = useState('idle')
+  const dragTargetCellRef = useRef(null)
   const suppressPieceClickRef = useRef(false)
   const scoreSubmittedRef = useRef(false)
   const gameOver = hasStarted && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
@@ -204,17 +205,19 @@ function App() {
     setHoverCell(null)
   }
 
+  const setDragTargetCell = (cell) => {
+    dragTargetCellRef.current = cell
+    setHoverCell(cell)
+  }
+
   const getDragTargetCell = (event) => {
     let { clientX, clientY } = event
+    const firstCell = document.querySelector('.board .cell')
 
-    if (event.pointerType === 'touch') {
-      const firstCell = document.querySelector('.board .cell')
-
-      if (firstCell) {
-        const cellBounds = firstCell.getBoundingClientRect()
-        const rowGap = Number.parseFloat(getComputedStyle(firstCell.parentElement).rowGap) || 0
-        clientY -= cellBounds.height + rowGap
-      }
+    if (firstCell) {
+      const cellBounds = firstCell.getBoundingClientRect()
+      const rowGap = Number.parseFloat(getComputedStyle(firstCell.parentElement).rowGap) || 0
+      clientY -= cellBounds.height + rowGap
     }
 
     return document.elementFromPoint(clientX, clientY)?.closest('.cell') ?? null
@@ -416,11 +419,15 @@ function App() {
                       handleCellClick(rowIndex, colIndex)
                     }}
                     onMouseEnter={() => {
-                      if (hoveredPiecePreview && placingEnabled) {
+                      if (!draggingPieceId && hoveredPiecePreview && placingEnabled) {
                         setHoverCell({ row: rowIndex, col: colIndex })
                       }
                     }}
-                    onMouseLeave={() => setHoverCell(null)}
+                    onMouseLeave={() => {
+                      if (!draggingPieceId) {
+                        setHoverCell(null)
+                      }
+                    }}
                     onDragOver={(event) => {
                       event.preventDefault()
                       if (placingEnabled) {
@@ -465,9 +472,11 @@ function App() {
 
                     event.preventDefault()
                     event.currentTarget.setPointerCapture(event.pointerId)
+                    setDragTargetCell(null)
                     setSelectedPieceId(piece.id)
                     setDraggingPieceId(piece.id)
                     setDragPosition({ x: event.clientX, y: event.clientY })
+                    setHoverCell(null)
                     setPlacingEnabled(true)
                     setSelectionLocked(false)
                   }}
@@ -478,23 +487,22 @@ function App() {
 
                     setDragPosition({ x: event.clientX, y: event.clientY })
                     const cell = getDragTargetCell(event)
+                    const targetCell = cell
+                      ? { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
+                      : null
 
-                    setHoverCell(
-                      cell
-                        ? { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
-                        : null,
-                    )
+                    setDragTargetCell(targetCell)
                   }}
                   onPointerUp={(event) => {
-                    const cell = getDragTargetCell(event)
+                    const targetCell = dragTargetCellRef.current
 
                     suppressPieceClickRef.current = true
                     window.setTimeout(() => {
                       suppressPieceClickRef.current = false
                     }, 0)
 
-                    if (cell) {
-                      handleCellClick(Number(cell.dataset.row), Number(cell.dataset.col), piece)
+                    if (targetCell) {
+                      handleCellClick(targetCell.row, targetCell.col, piece)
                       setDraggingPieceId(null)
                       setDragPosition(null)
                       setHoverCell(null)
@@ -504,12 +512,14 @@ function App() {
                       setDragPosition(null)
                       setHoverCell(null)
                     }
+                    setDragTargetCell(null)
 
                     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
                       event.currentTarget.releasePointerCapture(event.pointerId)
                     }
                   }}
                   onPointerCancel={(event) => {
+                    setDragTargetCell(null)
                     setDraggingPieceId(null)
                     setDragPosition(null)
                     setHoverCell(null)
