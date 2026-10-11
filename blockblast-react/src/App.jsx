@@ -156,7 +156,7 @@ function App() {
     }
 
     const updatePieceScale = () => {
-      const cellSize = firstCell.getBoundingClientRect().width
+      const cellSize = firstCell.offsetWidth
       gamePage.style.setProperty('--board-cell-size', `${cellSize}px`)
     }
 
