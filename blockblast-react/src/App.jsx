@@ -572,17 +572,19 @@ function App() {
           <div className="piece-list">
             {pieces.map((piece, index) => {
               const isSelected = placingEnabled && selectedPiece?.id === piece.id
+              const isPlaceable = canPieceFitAnywhere(piece, board)
 
               return (
                 <button
                   key={piece.id}
                   type="button"
-                  className={`piece ${isSelected ? 'selected' : ''} ${draggingPieceId === piece.id ? 'dragging' : ''}`}
+                  className={`piece ${isSelected ? 'selected' : ''} ${draggingPieceId === piece.id ? 'dragging' : ''} ${!isPlaceable ? 'unplaceable' : ''}`}
                   style={{ '--piece-color': piece.color }}
-                  aria-label={`ブロック ${index + 1}${isSelected ? '、選択中' : '、長押しして盤面へ移動'}`}
+                  aria-label={`ブロック ${index + 1}${isSelected ? '、選択中' : '、長押しして盤面へ移動'}${!isPlaceable ? '、置けない' : ''}`}
                   aria-pressed={isSelected}
+                  aria-disabled={!isPlaceable}
                   onPointerDown={(event) => {
-                    if (clearingLines || !event.isPrimary || event.button !== 0) {
+                    if (clearingLines || !event.isPrimary || event.button !== 0 || !isPlaceable) {
                       return
                     }
 
@@ -657,7 +659,7 @@ function App() {
                     }
                   }}
                   onClick={() => {
-                    if (suppressPieceClickRef.current) {
+                    if (suppressPieceClickRef.current || !isPlaceable) {
                       suppressPieceClickRef.current = false
                       return
                     }
@@ -666,7 +668,7 @@ function App() {
                   }}
                 >
                   <PieceGrid piece={piece} />
-                  <span className="piece-status">{isSelected ? '選択中' : '長押しして移動'}</span>
+                  <span className="piece-status">{isSelected ? '選択中' : isPlaceable ? '長押しして移動' : '置けない'}</span>
                 </button>
               )
             })}
