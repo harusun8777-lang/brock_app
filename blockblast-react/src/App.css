@@ -84,8 +84,12 @@ home-linkpiece-list.game-page {
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 0.375rem;
   padding: 0.5rem;
-  border-radius: 1rem;
-  background: rgba(30, 41, 59, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 1.125rem;
+  background: rgba(30, 41, 59, 0.96);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 1.25rem rgba(255, 255, 255, 0.12);
 }
 
 .cell {
@@ -667,18 +671,30 @@ home-linkpiece-list.game-page {
 }
 
 .home-link {
-  display: block;
-  margin: 0 0 0.625rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 0.75rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0.25rem 0.875rem rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 800;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.home-link:hover {
+  transform: translateY(-0.0625rem);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .home-link span {
-  margin-right: 0.25rem;
+  font-size: 1.2em;
 }
 
 @media (max-width: 26.25em) {
