@@ -4,21 +4,51 @@ import HomeScreen from './HomeScreen.jsx'
 
 const BOARD_SIZE = 8
 
-const SHAPES = [
+const BASE_SHAPES = [
+  [{ row: 0, col: 0 }],
+  [{ row: 0, col: 0 }, { row: 0, col: 1 }],
+  [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }],
   [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0 }, { row: 1, col: 1 }],
   [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0 }],
-  [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }],
   [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 1 }, { row: 0, col: 2 }],
   [{ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }],
+  [{ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }, { row: 2, col: 1 }],
+  [{ row: 0, col: 1 }, { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }],
+  [{ row: 0, col: 1 }, { row: 0, col: 2 }, { row: 1, col: 0 }, { row: 1, col: 1 }],
+  [{ row: 0, col: 1 }, { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 2, col: 1 }],
+  [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }, { row: 0, col: 3 }, { row: 0, col: 4 }],
 ]
 
-const COLORS = ['#ff6b6b', '#ffd166', '#06d6a0', '#4cc9f0', '#c77dff', '#f4a261']
+const normalizeShape = (shape) => {
+  const minRow = Math.min(...shape.map(({ row }) => row))
+  const minCol = Math.min(...shape.map(({ col }) => col))
+
+  return shape
+    .map(({ row, col }) => ({ row: row - minRow, col: col - minCol }))
+    .sort((first, second) => first.row - second.row || first.col - second.col)
+}
+
+const SHAPES = [...new Map(BASE_SHAPES.flatMap((baseShape) => {
+  const rotations = []
+  let shape = normalizeShape(baseShape)
+
+  for (let turn = 0; turn < 4; turn += 1) {
+    rotations.push(shape)
+    shape = normalizeShape(shape.map(({ row, col }) => ({ row: col, col: -row })))
+  }
+
+  return rotations.map((rotation) => [
+    rotation.map(({ row, col }) => `${row},${col}`).join(';'),
+    rotation,
+  ])
+})).values()]
+
+const COLORS = ['#ffd166', '#06d6a0', '#4cc9f0', '#c77dff', '#f4a261']
 
 const createEmptyBoard = () =>
   Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => null))
 
-const createRandomPiece = () => {
-  const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)]
+const createRandomPiece = (shape) => {
   const color = COLORS[Math.floor(Math.random() * COLORS.length)]
 
   return {
@@ -28,7 +58,48 @@ const createRandomPiece = () => {
   }
 }
 
-const createInitialPieces = () => Array.from({ length: 3 }, () => createRandomPiece())
+const createInitialPieces = () => {
+  const availableShapes = [...SHAPES]
+
+  for (let index = availableShapes.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    const shape = availableShapes[index]
+    availableShapes[index] = availableShapes[swapIndex]
+    availableShapes[swapIndex] = shape
+  }
+
+  return availableShapes.slice(0, 3).map((shape) => createRandomPiece(shape))
+}
+
+function PieceGrid({ piece }) {
+  const rows = Math.max(...piece.shape.map(({ row }) => row)) + 1
+  const cols = Math.max(...piece.shape.map(({ col }) => col)) + 1
+  const compact = Math.max(rows, cols) > 3
+
+  return (
+    <span
+      className={`piece-grid ${compact ? 'piece-grid-compact' : ''}`}
+      style={{
+        gridTemplateColumns: `repeat(${cols}, var(--piece-cell-size))`,
+        gridTemplateRows: `repeat(${rows}, var(--piece-cell-size))`,
+      }}
+      aria-hidden="true"
+    >
+      {Array.from({ length: rows * cols }, (_, cellIndex) => {
+        const row = Math.floor(cellIndex / cols)
+        const col = cellIndex % cols
+        const filled = piece.shape.some((block) => block.row === row && block.col === col)
+
+        return (
+          <span
+            key={`${piece.id}-${row}-${col}`}
+            className={`piece-cell ${filled ? 'filled' : ''}`}
+          />
+        )
+      })}
+    </span>
+  )
+}
 
 const canPieceFitAnywhere = (piece, targetBoard) => {
   for (let row = 0; row < BOARD_SIZE; row += 1) {
@@ -63,14 +134,17 @@ function App() {
   const [hoverCell, setHoverCell] = useState(null)
   const [placingEnabled, setPlacingEnabled] = useState(false)
   const [selectionLocked, setSelectionLocked] = useState(false)
+  const [clearingCells, setClearingCells] = useState([])
+  const [clearingLines, setClearingLines] = useState(false)
   const [score, setScore] = useState(0)
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardStatus, setLeaderboardStatus] = useState('idle')
   const dragTargetCellRef = useRef(null)
   const dragPreviewRef = useRef(null)
+  const lineClearTimerRef = useRef(null)
   const suppressPieceClickRef = useRef(false)
   const scoreSubmittedRef = useRef(false)
-  const gameOver = hasStarted && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
+  const gameOver = hasStarted && !clearingLines && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
 
   useEffect(() => {
     if (gameOver) {
@@ -161,7 +235,7 @@ function App() {
     }
 
     if (filledRows.length === 0 && filledCols.length === 0) {
-      return { board: nextBoard, cleared: 0 }
+      return { board: nextBoard, cleared: 0, cells: [] }
     }
 
     const clearedBoard = nextBoard.map((row) => [...row])
@@ -177,7 +251,16 @@ function App() {
     })
 
     const cleared = filledRows.length + filledCols.length
-    return { board: clearedBoard, cleared }
+    const cells = []
+    for (let row = 0; row < BOARD_SIZE; row += 1) {
+      for (let col = 0; col < BOARD_SIZE; col += 1) {
+        if (filledRows.includes(row) || filledCols.includes(col)) {
+          cells.push({ row, col })
+        }
+      }
+    }
+
+    return { board: clearedBoard, cleared, cells }
   }
 
   const previewCells = hoveredPiecePreview && hoverCell
@@ -196,7 +279,7 @@ function App() {
   })
 
   const handlePieceSelection = (pieceId) => {
-    if (gameOver) {
+    if (gameOver || clearingLines) {
       return
     }
 
@@ -230,7 +313,7 @@ function App() {
   }
 
   const handleCellClick = (row, col, pieceOverride = selectedPiece) => {
-    if (gameOver) {
+    if (gameOver || clearingLines) {
       return
     }
 
@@ -252,12 +335,24 @@ function App() {
       nextBoard[nextRow][nextCol] = pieceToPlace.color
     })
 
-    const { board: cleanedBoard, cleared } = resolveCompletedLines(nextBoard)
+    const { board: cleanedBoard, cleared, cells } = resolveCompletedLines(nextBoard)
     const remainingPieces = pieces.filter((piece) => piece.id !== pieceToPlace.id)
     const bonusByClears = cleared === 0 ? 0 : cleared === 1 ? 25 : cleared === 2 ? 60 : 120
     const placementScore = pieceToPlace.shape.length + bonusByClears
 
-    setBoard(cleanedBoard)
+    if (cleared > 0) {
+      setBoard(nextBoard)
+      setClearingCells(cells)
+      setClearingLines(true)
+      lineClearTimerRef.current = window.setTimeout(() => {
+        setBoard(cleanedBoard)
+        setClearingCells([])
+        setClearingLines(false)
+        lineClearTimerRef.current = null
+      }, 360)
+    } else {
+      setBoard(cleanedBoard)
+    }
     setScore((current) => current + placementScore)
 
     if (remainingPieces.length === 0) {
@@ -279,6 +374,11 @@ function App() {
   }
 
   const resetGame = (start = true) => {
+    if (lineClearTimerRef.current !== null) {
+      window.clearTimeout(lineClearTimerRef.current)
+      lineClearTimerRef.current = null
+    }
+
     setBoard(createEmptyBoard())
     setPieces(createInitialPieces())
     setSelectedPieceId(null)
@@ -286,6 +386,8 @@ function App() {
     setDragPosition(null)
     setPlacingEnabled(false)
     setSelectionLocked(false)
+    setClearingCells([])
+    setClearingLines(false)
     setScore(0)
     setLeaderboard([])
     setLeaderboardStatus('idle')
@@ -397,12 +499,15 @@ function App() {
                 const isInvalidPreview = redCells.some(
                   ({ row, col }) => row === rowIndex && col === colIndex,
                 )
+                const isClearing = clearingCells.some(
+                  ({ row, col }) => row === rowIndex && col === colIndex,
+                )
 
                 return (
                   <button
                     key={`${rowIndex}-${colIndex}`}
                     type="button"
-                    className={`cell ${cell ? 'filled' : ''} ${isPreviewed ? 'preview' : ''} ${isInvalidPreview ? 'invalid' : ''}`}
+                    className={`cell ${cell ? 'filled' : ''} ${isPreviewed ? 'preview' : ''} ${isInvalidPreview ? 'invalid' : ''} ${isClearing ? 'line-clearing' : ''}`}
                     style={
                       cell
                         ? { background: cell }
@@ -472,7 +577,7 @@ function App() {
                   aria-label={`ブロック ${index + 1}${isSelected ? '、選択中' : '、長押しして盤面へ移動'}`}
                   aria-pressed={isSelected}
                   onPointerDown={(event) => {
-                    if (!event.isPrimary || event.button !== 0) {
+                    if (clearingLines || !event.isPrimary || event.button !== 0) {
                       return
                     }
 
@@ -556,20 +661,7 @@ function App() {
                     handlePieceSelection(piece.id)
                   }}
                 >
-                  <span className="piece-grid" aria-hidden="true">
-                    {Array.from({ length: 9 }, (_, cellIndex) => {
-                      const row = Math.floor(cellIndex / 3)
-                      const col = cellIndex % 3
-                      const filled = piece.shape.some((block) => block.row === row && block.col === col)
-
-                      return (
-                        <span
-                          key={`${piece.id}-${row}-${col}`}
-                          className={`piece-cell ${filled ? 'filled' : ''}`}
-                        />
-                      )
-                    })}
-                  </span>
+                  <PieceGrid piece={piece} />
                   <span className="piece-status">{isSelected ? '選択中' : '長押しして移動'}</span>
                 </button>
               )
@@ -589,15 +681,7 @@ function App() {
           }}
           aria-hidden="true"
         >
-          <span className="piece-grid">
-            {Array.from({ length: 9 }, (_, cellIndex) => {
-              const row = Math.floor(cellIndex / 3)
-              const col = cellIndex % 3
-              const filled = draggedPiece.shape.some((block) => block.row === row && block.col === col)
-
-              return <span key={`${draggingPieceId}-${row}-${col}`} className={`piece-cell ${filled ? 'filled' : ''}`} />
-            })}
-          </span>
+          <PieceGrid piece={draggedPiece} />
         </div>
       )}
     </main>
