@@ -198,10 +198,13 @@ home-linkpiece-list.game-page {
 .drag-preview {
   --drag-cell-size: calc((min(86vw, 26.25rem) - 3.625rem) / 8);
   position: fixed;
+  top: 0;
+  left: 0;
   z-index: 10;
   display: grid;
   pointer-events: none;
-  transform: translate(-50%, calc(-100% - 2.5rem));
+  transform: translate3d(var(--drag-x), var(--drag-y), 0) translate(-50%, calc(-100% - 2.5rem));
+  will-change: transform;
 }
 
 .drag-preview .piece-grid {

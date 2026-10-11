@@ -67,6 +67,7 @@ function App() {
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardStatus, setLeaderboardStatus] = useState('idle')
   const dragTargetCellRef = useRef(null)
+  const dragPreviewRef = useRef(null)
   const suppressPieceClickRef = useRef(false)
   const scoreSubmittedRef = useRef(false)
   const gameOver = hasStarted && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
@@ -206,21 +207,26 @@ function App() {
   }
 
   const setDragTargetCell = (cell) => {
+    const previousCell = dragTargetCellRef.current
+    if (previousCell?.row === cell?.row && previousCell?.col === cell?.col) {
+      return
+    }
+
     dragTargetCellRef.current = cell
     setHoverCell(cell)
   }
 
   const getDragTargetCell = (event) => {
-    let { clientX, clientY } = event
-    const firstCell = document.querySelector('.board .cell')
+    const previewAnchor = dragPreviewRef.current?.querySelector('.piece-cell')
+    const previewAnchorBounds = previewAnchor?.getBoundingClientRect()
+    const targetX = previewAnchorBounds
+      ? previewAnchorBounds.left + previewAnchorBounds.width / 2
+      : event.clientX
+    const targetY = previewAnchorBounds
+      ? previewAnchorBounds.top + previewAnchorBounds.height / 2
+      : event.clientY
 
-    if (firstCell) {
-      const cellBounds = firstCell.getBoundingClientRect()
-      const rowGap = Number.parseFloat(getComputedStyle(firstCell.parentElement).rowGap) || 0
-      clientY -= cellBounds.height + rowGap
-    }
-
-    return document.elementFromPoint(clientX, clientY)?.closest('.cell') ?? null
+    return document.elementFromPoint(targetX, targetY)?.closest('.board .cell') ?? null
   }
 
   const handleCellClick = (row, col, pieceOverride = selectedPiece) => {
@@ -485,7 +491,11 @@ function App() {
                       return
                     }
 
-                    setDragPosition({ x: event.clientX, y: event.clientY })
+                    if (dragPreviewRef.current) {
+                      dragPreviewRef.current.style.setProperty('--drag-x', `${event.clientX}px`)
+                      dragPreviewRef.current.style.setProperty('--drag-y', `${event.clientY}px`)
+                    }
+
                     const cell = getDragTargetCell(event)
                     const targetCell = cell
                       ? { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
@@ -494,7 +504,16 @@ function App() {
                     setDragTargetCell(targetCell)
                   }}
                   onPointerUp={(event) => {
-                    const targetCell = dragTargetCellRef.current
+                    if (dragPreviewRef.current) {
+                      dragPreviewRef.current.style.setProperty('--drag-x', `${event.clientX}px`)
+                      dragPreviewRef.current.style.setProperty('--drag-y', `${event.clientY}px`)
+                    }
+
+                    const cell = getDragTargetCell(event)
+                    const targetCell = cell
+                      ? { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
+                      : null
+                    setDragTargetCell(targetCell)
 
                     suppressPieceClickRef.current = true
                     window.setTimeout(() => {
@@ -561,8 +580,13 @@ function App() {
       </div>
       {draggedPiece && dragPosition && (
         <div
+          ref={dragPreviewRef}
           className="drag-preview"
-          style={{ left: dragPosition.x, top: dragPosition.y, '--piece-color': draggedPiece.color }}
+          style={{
+            '--drag-x': `${dragPosition.x}px`,
+            '--drag-y': `${dragPosition.y}px`,
+            '--piece-color': draggedPiece.color,
+          }}
           aria-hidden="true"
         >
           <span className="piece-grid">
