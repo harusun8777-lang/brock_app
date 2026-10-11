@@ -10,7 +10,7 @@ const getTopScores = async (sql) => {
         score
       FROM leaderboard_scores
     ) ranked_scores
-    WHERE position <= 10
+    WHERE position <= 4
     ORDER BY position
   `
 

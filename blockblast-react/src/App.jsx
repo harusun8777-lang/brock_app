@@ -133,7 +133,6 @@ function App() {
   const [dragPosition, setDragPosition] = useState(null)
   const [hoverCell, setHoverCell] = useState(null)
   const [placingEnabled, setPlacingEnabled] = useState(false)
-  const [selectionLocked, setSelectionLocked] = useState(false)
   const [clearingCells, setClearingCells] = useState([])
   const [clearingLines, setClearingLines] = useState(false)
   const [score, setScore] = useState(0)
@@ -168,18 +167,6 @@ function App() {
 
     return () => resizeObserver.disconnect()
   }, [hasStarted])
-
-  useEffect(() => {
-    if (gameOver) {
-      setSelectedPieceId(null)
-      setSelectionLocked(false)
-      return
-    }
-
-    if (pieces.length > 0 && !selectedPieceId && !selectionLocked) {
-      setSelectedPieceId(pieces[0].id)
-    }
-  }, [pieces, selectedPieceId, gameOver, selectionLocked])
 
   useEffect(() => {
     if (!gameOver || scoreSubmittedRef.current) {
@@ -307,7 +294,6 @@ function App() {
     }
 
     setSelectedPieceId(pieceId)
-    setSelectionLocked(false)
     setPlacingEnabled(true)
     setHoverCell(null)
   }
@@ -381,7 +367,6 @@ function App() {
     if (remainingPieces.length === 0) {
       setPieces(createInitialPieces())
       setSelectedPieceId(null)
-      setSelectionLocked(true)
       setPlacingEnabled(false)
       setDraggingPieceId(null)
       setDragPosition(null)
@@ -391,7 +376,6 @@ function App() {
 
     setPieces(remainingPieces)
     setSelectedPieceId(null)
-    setSelectionLocked(true)
     setPlacingEnabled(false)
     setHoverCell(null)
   }
@@ -408,7 +392,6 @@ function App() {
     setDraggingPieceId(null)
     setDragPosition(null)
     setPlacingEnabled(false)
-    setSelectionLocked(false)
     setClearingCells([])
     setClearingLines(false)
     setScore(0)
@@ -453,7 +436,7 @@ function App() {
                 <span>ALL PLAYERS</span>
                 <h2 id="leaderboard-title">ランキング</h2>
               </div>
-              <strong>TOP 10</strong>
+              <strong>TOP 4</strong>
             </div>
 
             {leaderboardStatus === 'loading' && (
@@ -612,7 +595,6 @@ function App() {
                     setDragPosition({ x: event.clientX, y: event.clientY })
                     setHoverCell(null)
                     setPlacingEnabled(true)
-                    setSelectionLocked(false)
                   }}
                   onPointerMove={(event) => {
                     if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
