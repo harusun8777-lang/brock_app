@@ -141,10 +141,33 @@ function App() {
   const [leaderboardStatus, setLeaderboardStatus] = useState('idle')
   const dragTargetCellRef = useRef(null)
   const dragPreviewRef = useRef(null)
+  const gamePageRef = useRef(null)
   const lineClearTimerRef = useRef(null)
   const suppressPieceClickRef = useRef(false)
   const scoreSubmittedRef = useRef(false)
   const gameOver = hasStarted && !clearingLines && pieces.length > 0 && !pieces.some((piece) => canPieceFitAnywhere(piece, board))
+
+  useEffect(() => {
+    const gamePage = gamePageRef.current
+    const boardElement = gamePage?.querySelector('.board')
+    const firstCell = boardElement?.querySelector('.cell')
+
+    if (!gamePage || !boardElement || !firstCell) {
+      return
+    }
+
+    const updatePieceScale = () => {
+      const cellSize = firstCell.getBoundingClientRect().width
+      gamePage.style.setProperty('--board-cell-size', `${cellSize}px`)
+    }
+
+    updatePieceScale()
+
+    const resizeObserver = new ResizeObserver(updatePieceScale)
+    resizeObserver.observe(boardElement)
+
+    return () => resizeObserver.disconnect()
+  }, [hasStarted])
 
   useEffect(() => {
     if (gameOver) {
@@ -472,7 +495,7 @@ function App() {
   }
 
   return (
-    <main className="game-page">
+    <main className="game-page" ref={gamePageRef}>
       <header className="topbar">
         <div>
           <button type="button" className="home-link" onClick={() => resetGame(false)}>

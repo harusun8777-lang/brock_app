@@ -228,7 +228,7 @@ home-linkpiece-list.game-page {
 }
 
 .drag-preview {
-  --drag-cell-size: calc((min(86vw, 26.25rem) - 3.625rem) / 8);
+  --drag-cell-size: var(--board-cell-size, calc((min(86vw, 26.25rem) - 3.625rem) / 8));
   position: fixed;
   top: 0;
   left: 0;
@@ -252,13 +252,13 @@ home-linkpiece-list.game-page {
 
 .piece-grid {
   display: grid;
-  --piece-cell-size: 1.125rem;
+  --piece-cell-size: min(1.125rem, calc(var(--board-cell-size, 1.125rem) * 0.65));
   gap: 0.25rem;
   justify-content: center;
 }
 
 .piece-grid-compact {
-  --piece-cell-size: 0.75rem;
+  --piece-cell-size: min(0.75rem, calc(var(--board-cell-size, 1.125rem) * 0.48));
   gap: 0.1875rem;
 }
 
