@@ -166,7 +166,7 @@ function App() {
     resizeObserver.observe(boardElement)
 
     return () => resizeObserver.disconnect()
-  }, [hasStarted])
+  }, [hasStarted, gameOver])
 
   useEffect(() => {
     if (!gameOver || scoreSubmittedRef.current) {
