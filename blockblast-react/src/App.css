@@ -130,8 +130,15 @@ home-linkpiece-list.game-page {
 }
 
 .cell.invalid {
-  background: rgba(239, 68, 68, 0.9) !important;
+  position: relative;
+  z-index: 2;
+  background: #ef4444 !important;
+  background-image: none !important;
   box-shadow: inset 0 0 0 0.125rem rgba(255, 255, 255, 0.8) !important;
+}
+
+.cell.preview.invalid-placement:not(.invalid) {
+  opacity: 0.55;
 }
 
 .cell.line-clearing {
@@ -251,13 +258,8 @@ home-linkpiece-list.game-page {
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
 }
 
-.piece.unplaceable .piece-grid .piece-cell.filled,
 .piece.unplaceable .piece-cell.filled {
-  box-shadow:
-    inset 0 0.12rem 0.16rem rgba(255, 255, 255, 0.18),
-    inset 0 -0.16rem 0.2rem rgba(0, 0, 0, 0.12),
-    0 0.08rem 0 rgba(0, 0, 0, 0.12),
-    0 0.12rem 0.18rem rgba(0, 0, 0, 0.12);
+  opacity: 0.5;
 }
 
 .drag-preview {
@@ -273,6 +275,10 @@ home-linkpiece-list.game-page {
     drop-shadow(0 0 0.55rem color-mix(in srgb, var(--piece-color) 70%, transparent));
   transform: translate3d(var(--drag-x), var(--drag-y), 0) translate(-50%, calc(-100% - 2.5rem));
   will-change: transform;
+}
+
+.drag-preview.invalid-placement {
+  opacity: 0.5;
 }
 
 .drag-preview .piece-grid {

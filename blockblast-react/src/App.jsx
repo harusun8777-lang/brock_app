@@ -287,6 +287,11 @@ function App() {
 
     return Boolean(board[row]?.[col])
   })
+  const hasInvalidPlacement = Boolean(
+    hoveredPiecePreview &&
+      hoverCell &&
+      !canPlacePiece(hoveredPiecePreview, hoverCell.row, hoverCell.col),
+  )
 
   const handlePieceSelection = (pieceId) => {
     if (gameOver || clearingLines) {
@@ -513,7 +518,7 @@ function App() {
                   <button
                     key={`${rowIndex}-${colIndex}`}
                     type="button"
-                    className={`cell ${cell ? 'filled' : ''} ${isPreviewed ? 'preview' : ''} ${isInvalidPreview ? 'invalid' : ''} ${isClearing ? 'line-clearing' : ''}`}
+                    className={`cell ${cell ? 'filled' : ''} ${isPreviewed ? 'preview' : ''} ${isPreviewed && hasInvalidPlacement ? 'invalid-placement' : ''} ${isInvalidPreview ? 'invalid' : ''} ${isClearing ? 'line-clearing' : ''}`}
                     style={
                       cell
                         ? { background: cell }
@@ -679,7 +684,7 @@ function App() {
       {draggedPiece && dragPosition && (
         <div
           ref={dragPreviewRef}
-          className="drag-preview"
+          className={`drag-preview ${redCells.length > 0 ? 'invalid-placement' : ''}`}
           style={{
             '--drag-x': `${dragPosition.x}px`,
             '--drag-y': `${dragPosition.y}px`,
